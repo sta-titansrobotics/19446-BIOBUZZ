@@ -26,4 +26,12 @@ android {
 
 dependencies {
     implementation project(':FtcRobotController')
+
+    //------imported from last year------
+    //math library (prob for sinusoidal functions)
+    implementation 'org.apache.commons:commons-math3:3.6.1'
+    //unsure
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.12.7'
+    //roadrunner and also probably ftc dashboard
+    implementation 'com.acmerobotics.roadrunner:core:0.5.6'
 }

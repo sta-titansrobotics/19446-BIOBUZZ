@@ -17,10 +17,11 @@ android {
     buildFeatures {
         buildConfig = true
     }
-
+    //potentially change to 34
     compileSdkVersion 30
 
     compileOptions {
+        //potentially change to VERSION_11
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }

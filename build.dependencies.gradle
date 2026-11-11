@@ -1,6 +1,8 @@
 repositories {
     mavenCentral()
     google() // Needed for androidx
+    maven { url 'https://repo.dairy.foundation/releases/'} // for pedropathing
+    maven { url 'https://maven.brott.dev/' } // for ftc dashboard and roadrunner
 }
 
 dependencies {
@@ -13,5 +15,15 @@ dependencies {
     implementation 'org.firstinspires.ftc:FtcCommon:12.0.0'
     implementation 'org.firstinspires.ftc:Vision:12.0.0'
     implementation 'androidx.appcompat:appcompat:1.2.0'
+    //previous year implements
+    //ftc dashboard
+    implementation 'com.acmerobotics.dashboard:dashboard:0.5.1'
+    //pedropathing  (UPDATED TO 3.0.2)
+    implementation 'com.pedropathing:revhub:3.0.2'
+    //might need new version to ork with updated petropathing - apparently depricated, still including just in case
+    implementation 'com.pedropathing:telemetry:1.0.0'
+    implementation 'com.pedropathing:tuning:1.0.0'
+    //ftc panels, essentially ftcdashboard but just for pedropathing (might also have to update for compatibility)
+    //implementation 'com.bylazar:fullpanels:1.0.6' //depricated, removed for performance
 }
 
