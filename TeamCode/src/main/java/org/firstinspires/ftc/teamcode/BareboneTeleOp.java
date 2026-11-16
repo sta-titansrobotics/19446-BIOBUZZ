@@ -1,8 +1,12 @@
 package org.firstinspires.ftc.teamcode;
 
+import android.graphics.Color;
+
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
+import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 @TeleOp
@@ -13,6 +17,8 @@ public class BareboneTeleOp extends LinearOpMode {
     private DcMotor backLeft;
     private DcMotor backRight;
     private DcMotor frontRight;
+    private DcMotor intake;
+    public NormalizedColorSensor colorSensor;
 
     // Braking Mechanism
     private int lockFL = 0, lockFR = 0, lockBL = 0, lockBR = 0;
@@ -37,6 +43,8 @@ public class BareboneTeleOp extends LinearOpMode {
         backLeft = hardwareMap.get(DcMotor.class, "backLeft");
         backRight = hardwareMap.get(DcMotor.class, "backRight");
         frontRight = hardwareMap.get(DcMotor.class, "frontRight");
+        intake = hardwareMap.get(DcMotor.class, "intake");
+        colorSensor = hardwareMap.get(NormalizedColorSensor.class, "color_sensor");
 
         // Set Motor Direction
         frontLeft.setDirection(DcMotor.Direction.REVERSE);
@@ -62,18 +70,45 @@ public class BareboneTeleOp extends LinearOpMode {
         backLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         backRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
+        // Intake
+        intake.setDirection(DcMotor.Direction.REVERSE);
+        intake.setPower(0);
+
         telemetry.addData("Status", "Ready");
         telemetry.update();
 
         ElapsedTime rpmTimer = new ElapsedTime();
         ElapsedTime slewTimer = new ElapsedTime();
 
+        colorSensor.setGain(20.0f);
+
         waitForStart();
         rpmTimer.reset();
         slewTimer.reset();
 
+        float[] hsvValues = new float[3];
+
+
         // 3. Run continuously while the match is active
         while (opModeIsActive()) {
+
+            // Color Sensor
+            NormalizedRGBA colors = colorSensor.getNormalizedColors();
+
+            Color.colorToHSV(colors.toColor(), hsvValues);
+            float hue = hsvValues[0];
+
+            String detectedColor = "";
+
+            if (hue >= 40 && hue < 85) {
+                detectedColor = "Yellow";
+            } else if (hue > 330 || hue < 30) {
+                detectedColor = "Red";
+            } else if (hue >= 180 && hue <= 225){
+                detectedColor = "Blue";
+            } else {
+                detectedColor = "Cannot Detect";
+            }
 
             // Calculate time elapsed since last loop for slew rate
             double dt = slewTimer.seconds();
@@ -90,7 +125,7 @@ public class BareboneTeleOp extends LinearOpMode {
             double rightBackPower;
 
             if (gamepad1.right_bumper) {
-                if(!isBraking) {
+                if (!isBraking) {
                     // Where robot is right now.
                     lockFL = frontLeft.getCurrentPosition();
                     lockFR = frontRight.getCurrentPosition();
@@ -124,6 +159,13 @@ public class BareboneTeleOp extends LinearOpMode {
                     isBraking = true;
 
                 }
+            } else if (gamepad2.a) {
+                // PRIORITY 2: MANUAL INTAKE (IN)
+                intake.setPower(-1.0);
+            } else if (gamepad2.y) {
+                // PRIORITY 2: MANUAL INTAKE (OUT)
+                intake.setPower(1.0);
+
             } else {
 
                 isBraking = false;
@@ -185,6 +227,7 @@ public class BareboneTeleOp extends LinearOpMode {
             telemetry.addData("Front Right RPM", "%.1f", frRPM);
             telemetry.addData("Back Left RPM", "%.1f", blRPM);
             telemetry.addData("Back Right RPM", "%.1f", brRPM);
+            telemetry.addData("Detected Object Color", detectedColor);
 
             telemetry.update();
         }
