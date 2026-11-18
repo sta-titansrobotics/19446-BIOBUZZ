@@ -172,12 +172,23 @@ public class coords_auto extends OpMode {
     @Override
     public void loop() {
 
-        if (gamepad1.a){
-            rightshooterPID.setTarget(1000);
-            leftshooterPID.setTarget(1000);
+        if (gamepad2.a){
+            rightshooterPID.setTarget(700);
+            leftshooterPID.setTarget(700);
         } else {
             rightshooterPID.setTarget(0);
             leftshooterPID.setTarget(0);
+        }
+
+        if (gamepad2.x){
+            intake.setPower(1.0);
+            transfer.setPower(-1.0);
+        } else if (gamepad2.b){
+            intake.setPower(-1.0);
+            transfer.setPower(1.0);
+        } else {
+            intake.setPower(0.0);
+            transfer.setPower(0.0);
         }
 
         // ------------------DRIVE TRAIN---------------------------------
@@ -194,6 +205,8 @@ public class coords_auto extends OpMode {
 
         //if (gamepad1.left_trigger>0.8&&gamepad1.right_trigger>0.8)
         //    imureset = fieldangle();
+
+
 
         dir = Math.atan2(-gamepad1.right_stick_y, gamepad1.right_stick_x) - offset;
         mag = Math.sqrt(Math.pow(gamepad1.right_stick_x, 2) + Math.pow(gamepad1.right_stick_y, 2));

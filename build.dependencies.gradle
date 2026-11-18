@@ -19,10 +19,10 @@ dependencies {
     //ftc dashboard
     implementation 'com.acmerobotics.dashboard:dashboard:0.5.1'
     //pedropathing  (UPDATED TO 3.0.2)
+    implementation 'com.pedropathing:core:3.0.2'
     implementation 'com.pedropathing:revhub:3.0.2'
-    //might need new version to ork with updated petropathing - apparently depricated, still including just in case
     implementation 'com.pedropathing:telemetry:1.0.0'
-    implementation 'com.pedropathing:tuning:1.0.0'
+    implementation 'com.pedropathing:tuning:1.0.3'
     //ftc panels, essentially ftcdashboard but just for pedropathing (might also have to update for compatibility)
     //implementation 'com.bylazar:fullpanels:1.0.6' //depricated, removed for performance
 }
