@@ -45,6 +45,7 @@ public class BareboneTeleOp extends LinearOpMode {
         frontRight = hardwareMap.get(DcMotor.class, "frontRight");
         intake = hardwareMap.get(DcMotor.class, "intake");
         colorSensor = hardwareMap.get(NormalizedColorSensor.class, "color_sensor");
+        transfer = hardwareMap.get(DcMotor.class, "transfer");
 
         // Set Motor Direction
         frontLeft.setDirection(DcMotor.Direction.REVERSE);
