@@ -28,7 +28,7 @@ public class VelocityPID {
 
 
     private ElapsedTime timer = new ElapsedTime();
-    private double kp, ki, kd;
+    private double kp, ki, kd, kf, max, min;
 
     //clamping function
     public double clamp(double value, double min, double max) {
@@ -36,7 +36,7 @@ public class VelocityPID {
     }
 
     //configuring motor to control
-    public VelocityPID(HardwareMap hardwareMap, String motor_name, DcMotorSimple.Direction direction, double kp, double ki, double kd){
+    public VelocityPID(HardwareMap hardwareMap, String motor_name, DcMotorSimple.Direction direction, double kp, double ki, double kd, double kf, double max_power, double min_power){
         motor = hardwareMap.get(DcMotor.class, motor_name);
         motor.setDirection(direction);
         motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
@@ -44,6 +44,9 @@ public class VelocityPID {
         this.kp = kp;
         this.ki = ki;
         this.kd = kd;
+        this.kf = kf;
+        this.max = max_power;
+        this.min = min_power;
 
         //reset values
         timer.reset();
@@ -90,7 +93,7 @@ public class VelocityPID {
 
         //power calculation
         double power = (kp * error) + (ki * integ) + (kd * deriv);
-        motor.setPower(clamp(power, -1, 1));
+        motor.setPower(clamp(power, min, max));
 
         //telemetry
         dashboard.getTelemetry().addData("power", motor.getPower());
