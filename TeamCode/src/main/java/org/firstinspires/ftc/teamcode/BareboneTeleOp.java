@@ -13,6 +13,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 public class BareboneTeleOp extends LinearOpMode {
 
     // Motors
+    private DcMotor transfer;
     private DcMotor frontLeft;
     private DcMotor backLeft;
     private DcMotor backRight;
@@ -44,8 +45,9 @@ public class BareboneTeleOp extends LinearOpMode {
         backRight = hardwareMap.get(DcMotor.class, "backRight");
         frontRight = hardwareMap.get(DcMotor.class, "frontRight");
         intake = hardwareMap.get(DcMotor.class, "intake");
-        colorSensor = hardwareMap.get(NormalizedColorSensor.class, "color_sensor");
         transfer = hardwareMap.get(DcMotor.class, "transfer");
+        colorSensor = hardwareMap.get(NormalizedColorSensor.class, "leftColorSensor");
+
 
         // Set Motor Direction
         frontLeft.setDirection(DcMotor.Direction.REVERSE);
@@ -73,7 +75,9 @@ public class BareboneTeleOp extends LinearOpMode {
 
         // Intake
         intake.setDirection(DcMotor.Direction.REVERSE);
+        intake.setDirection(DcMotor.Direction.REVERSE);
         intake.setPower(0);
+        transfer.setPower(0);
 
         telemetry.addData("Status", "Ready");
         telemetry.update();
@@ -163,9 +167,11 @@ public class BareboneTeleOp extends LinearOpMode {
             } else if (gamepad2.a) {
                 // PRIORITY 2: MANUAL INTAKE (IN)
                 intake.setPower(-1.0);
+                transfer.setPower(-1.0);
             } else if (gamepad2.y) {
                 // PRIORITY 2: MANUAL INTAKE (OUT)
                 intake.setPower(1.0);
+                transfer.setPower(1.0);
 
             } else {
 
