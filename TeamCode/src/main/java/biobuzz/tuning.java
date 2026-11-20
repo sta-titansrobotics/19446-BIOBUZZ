@@ -19,5 +19,4 @@ public class tuning {
     public static double hoodkd = 0.0;
     //public double rotkp = 0;
 
-
 }
