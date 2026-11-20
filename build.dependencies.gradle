@@ -25,5 +25,8 @@ dependencies {
     implementation 'com.pedropathing:tuning:1.0.3'
     //ftc panels, essentially ftcdashboard but just for pedropathing (might also have to update for compatibility)
     //implementation 'com.bylazar:fullpanels:1.0.6' //depricated, removed for performance
+
+    implementation 'com.pedropathing.ivy:pedro:1.1.1'
+
 }
 

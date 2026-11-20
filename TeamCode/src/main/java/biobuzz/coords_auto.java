@@ -2,6 +2,7 @@ package biobuzz;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.rev.RevBlinkinLedDriver;
@@ -22,6 +23,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
@@ -66,8 +68,10 @@ public class coords_auto extends OpMode {
     double sqrt2 = Math.sqrt(2);
 
     //BNO055IMU imu;
-    Orientation lastAngles = new Orientation();
-    Orientation lastAngles1 = new Orientation();
+    //Orientation lastAngles = new Orientation();
+    //Orientation lastAngles1 = new Orientation();
+    double lastAngles;
+    double lastAngles1;
     double lastAngles2;
     double angle;
     double angle1;
@@ -114,6 +118,9 @@ public class coords_auto extends OpMode {
     double shooteravg;
     double hood_position;
 
+    private GoBildaPinpointDriver pinpoint;
+
+
     FtcDashboard dashboard;
 
     @Override
@@ -134,6 +141,7 @@ public class coords_auto extends OpMode {
         rightExt = hardwareMap.get(CRServo.class, "intake2");
         lefthood = hardwareMap.get(CRServo.class, "lefthood");
         righthood = hardwareMap.get(CRServo.class, "righthood");
+        pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
 
         //limelight3A = hardwareMap.get(Limelight3A.class, "limelight");
         //limelight3A.pipelineSwitch(0);
@@ -186,6 +194,10 @@ public class coords_auto extends OpMode {
 
     @Override
     public void loop() {
+
+        pinpoint.update();
+        Pose2D pose = pinpoint.getPosition();
+
         shooteravg = (leftshooterPID.velocity()+rightshooterPID.velocity())/2;
         hood_position = hoodangle();
         
@@ -245,7 +257,7 @@ public class coords_auto extends OpMode {
         // ------------------DRIVE TRAIN---------------------------------
         //will cause the offset to be set back to 0
 
-        //offset = (fieldangle() - imureset);
+        offset = (fieldangle() - imureset);
         //oroffset = (getAngle()%360) - imureset;
 
         //imu increases when turning left and decreases when turning right
@@ -273,7 +285,7 @@ public class coords_auto extends OpMode {
             mag *= 0.5;
 
 
-        if (gamepad1.right_stick_y != 0 || gamepad1.right_stick_x != 0 || gamepad1.left_stick_x != 0 || rot != 0) {
+        if (gamepad1.left_stick_y != 0 || gamepad1.right_stick_x != 0 || gamepad1.left_stick_x != 0 || rot != 0) {
             FR.setPower((Math.sin(dir - (pi / 4)) * mag) - rot);
             FL.setPower((Math.sin(dir + (pi / 4)) * mag) + rot);
             BR.setPower((Math.sin(dir + (pi / 4)) * mag) - rot);
@@ -301,6 +313,7 @@ public class coords_auto extends OpMode {
         telemetry.addData("transfer power", transfer.getPower());
         telemetry.addData("intake velocity", intake.getVelocity());
         telemetry.addData("transfer velocity", transfer.getVelocity());
+        telemetry.addData("robot angle", fieldangle());
 
 
         telemetry.addLine("");
@@ -357,7 +370,7 @@ public class coords_auto extends OpMode {
         return angle2;
     }
 
-    /*
+/*
     private double getAngle() {
         Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
 
@@ -376,10 +389,11 @@ public class coords_auto extends OpMode {
         return angle;
     }
 
+*/
     private double fieldangle() {
-        Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.RADIANS);
+        double angles = pinpoint.getHeading(AngleUnit.RADIANS);
 
-        double deltaAngle = angles.firstAngle - lastAngles1.firstAngle;
+        double deltaAngle = angles - lastAngles1;
 
         angle1 += deltaAngle;
 
@@ -391,7 +405,7 @@ public class coords_auto extends OpMode {
         return Math.min(Math.max(value, min), max);
     }
 
-     */
+
 
     /*
     private void updateLimelight() {
