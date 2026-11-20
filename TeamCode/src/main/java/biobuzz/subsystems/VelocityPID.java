@@ -92,7 +92,7 @@ public class VelocityPID {
         }
 
         //power calculation
-        double power = (kp * error) + (ki * integ) + (kd * deriv);
+        double power = (kp * error) + (ki * integ) + (kd * deriv) + (kf*Math.abs(target));
         motor.setPower(clamp(power, min, max));
 
         //telemetry

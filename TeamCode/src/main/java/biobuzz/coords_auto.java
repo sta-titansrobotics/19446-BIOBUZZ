@@ -8,9 +8,10 @@ import com.qualcomm.hardware.rev.RevBlinkinLedDriver;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.ColorSensor;
-import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.LED;
@@ -27,6 +28,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
+import biobuzz.subsystems.CRservoPID;
 import biobuzz.subsystems.MotorPID;
 import biobuzz.subsystems.VelocityPID;
 import biobuzz.tuning;
@@ -56,13 +58,6 @@ public class coords_auto extends OpMode {
     static double mag;
     static double pi = Math.PI;
 
-    double rottarg;
-    double roterr;
-    double rotpower;
-    double rotpreverr;
-    double totroterr;
-    double rotinteg;
-
     double rot;
 
     double offset = 0;
@@ -73,8 +68,10 @@ public class coords_auto extends OpMode {
     //BNO055IMU imu;
     Orientation lastAngles = new Orientation();
     Orientation lastAngles1 = new Orientation();
+    double lastAngles2;
     double angle;
     double angle1;
+    double angle2;
 
     double apriltuner = 0.7;
 
@@ -84,8 +81,6 @@ public class coords_auto extends OpMode {
     private LLResult llResult;
     private double distance;
     int id;
-    boolean shootenabled = false;
-    boolean pidActiveLastLoop = false;
     double lastTime = 0;
 
     boolean patternunlock = false;
@@ -94,23 +89,30 @@ public class coords_auto extends OpMode {
     private VisionPortal visionPortal;
     private AprilTagProcessor aprilTagProcessor;
 
-    RevBlinkinLedDriver underglow;
-    RevBlinkinLedDriver aimassist;
-    RevBlinkinLedDriver.BlinkinPattern pattern;
-    RevBlinkinLedDriver.BlinkinPattern prevpattern;
+    private DcMotorEx FL;
+    private DcMotorEx BL;
+    private DcMotorEx FR;
+    private DcMotorEx BR;
 
-    private DcMotor FL;
-    private DcMotor BL;
-    private DcMotor FR;
-    private DcMotor BR;
+    private DcMotorEx intake;
+    private DcMotorEx rightShoot;
+    private DcMotorEx leftShoot;
+    private DcMotorEx transfer;
 
-    private DcMotor intake;
-    private DcMotor rightShoot;
-    private DcMotor leftShoot;
-    private DcMotor transfer;
+    private CRServo leftExt;
+    private CRServo rightExt;
+    private CRServo righthood;
+    private CRServo lefthood;
+    
 
     VelocityPID leftshooterPID;
     VelocityPID rightshooterPID;
+    CRservoPID righthoodPID;
+    CRservoPID lefthoodPID;
+
+    boolean readyToShoot;
+    double shooteravg;
+    double hood_position;
 
     FtcDashboard dashboard;
 
@@ -118,16 +120,20 @@ public class coords_auto extends OpMode {
     public void init() {
         // ----------------------Set Up------------------------------------------------
         // Moving
-        FL = hardwareMap.get(DcMotor.class, "FL");
-        BL = hardwareMap.get(DcMotor.class, "BL");
-        FR = hardwareMap.get(DcMotor.class, "FR");
-        BR = hardwareMap.get(DcMotor.class, "BR");
+        FL = hardwareMap.get(DcMotorEx.class, "FL");
+        BL = hardwareMap.get(DcMotorEx.class, "BL");
+        FR = hardwareMap.get(DcMotorEx.class, "FR");
+        BR = hardwareMap.get(DcMotorEx.class, "BR");
 
-        intake = hardwareMap.get(DcMotor.class, "intake");
-        rightShoot = hardwareMap.get(DcMotor.class, "rightshoot");
-        leftShoot = hardwareMap.get(DcMotor.class, "leftshoot");
-        transfer = hardwareMap.get(DcMotor.class, "transfer");
+        intake = hardwareMap.get(DcMotorEx.class, "intake");
+        rightShoot = hardwareMap.get(DcMotorEx.class, "rightshoot");
+        leftShoot = hardwareMap.get(DcMotorEx.class, "leftshoot");
+        transfer = hardwareMap.get(DcMotorEx.class, "transfer");
 
+        leftExt = hardwareMap.get(CRServo.class, "intake1");
+        rightExt = hardwareMap.get(CRServo.class, "intake2");
+        lefthood = hardwareMap.get(CRServo.class, "lefthood");
+        righthood = hardwareMap.get(CRServo.class, "righthood");
 
         //limelight3A = hardwareMap.get(Limelight3A.class, "limelight");
         //limelight3A.pipelineSwitch(0);
@@ -154,16 +160,25 @@ public class coords_auto extends OpMode {
          * if (getRuntime() - prevtime > 5000)
          */
 
-        BR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        BL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        FR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        FL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        BR.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        BL.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        FR.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        FL.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
-        BL.setDirection(DcMotorSimple.Direction.REVERSE);
-        FL.setDirection(DcMotorSimple.Direction.REVERSE);
+        BL.setDirection(DcMotorEx.Direction.REVERSE);
+        FL.setDirection(DcMotorEx.Direction.REVERSE);
 
-        leftshooterPID = new VelocityPID(hardwareMap, "leftshoot", DcMotorSimple.Direction.REVERSE, tuning.shootkp, tuning.shootki, tuning.shootkd, tuning.shootkf, tuning.shootmax, tuning.shootmin);
-        rightshooterPID = new VelocityPID(hardwareMap, "rightshoot", DcMotorSimple.Direction.FORWARD, tuning.shootkp, tuning.shootki, tuning.shootkd, tuning.shootkf, tuning.shootmax, tuning.shootmin);
+        intake.setDirection(DcMotorEx.Direction.REVERSE);
+
+        leftExt.setDirection(DcMotorEx.Direction.REVERSE);
+        lefthood.setDirection(DcMotorEx.Direction.REVERSE);
+
+        leftshooterPID = new VelocityPID(hardwareMap, "leftshoot", DcMotorEx.Direction.REVERSE, tuning.shootkp, tuning.shootki, tuning.shootkd, tuning.shootkf, tuning.shootmax, tuning.shootmin);
+        rightshooterPID = new VelocityPID(hardwareMap, "rightshoot", DcMotorEx.Direction.FORWARD, tuning.shootkp, tuning.shootki, tuning.shootkd, tuning.shootkf, tuning.shootmax, tuning.shootmin);
+
+        lefthoodPID = new CRservoPID(hardwareMap, "lefthood", DcMotorEx.Direction.FORWARD, tuning.hoodkp, tuning.hoodki, tuning.hoodkd);
+        righthoodPID = new CRservoPID(hardwareMap, "righthood", DcMotorEx.Direction.FORWARD, tuning.hoodkp, tuning.hoodki, tuning.hoodkd);
+
 
         //initAprilTag();
         dashboard = FtcDashboard.getInstance();
@@ -171,14 +186,61 @@ public class coords_auto extends OpMode {
 
     @Override
     public void loop() {
-
-        if (gamepad1.a){
-            rightshooterPID.setTarget(1000);
-            leftshooterPID.setTarget(1000);
+        shooteravg = (leftshooterPID.velocity()+rightshooterPID.velocity())/2;
+        hood_position = hoodangle();
+        
+        if (gamepad2.a){
+            rightshooterPID.setTarget(tuning.targetvelo);
+            leftshooterPID.setTarget(tuning.targetvelo);
         } else {
             rightshooterPID.setTarget(0);
             leftshooterPID.setTarget(0);
         }
+
+        if (Math.abs(tuning.targetvelo-shooteravg)<150){
+            readyToShoot = true;
+        } else {
+            readyToShoot = false;
+        }
+        
+        if (gamepad1.right_trigger>0.1){
+            rightExt.setPower(gamepad1.right_trigger);
+            leftExt.setPower(gamepad1.right_trigger);
+        }
+
+
+        if (gamepad2.right_trigger>0.1) {
+            if (readyToShoot){
+                intake.setPower(gamepad2.right_trigger);
+                transfer.setPower(gamepad2.right_trigger);
+            } else {
+                intake.setPower(gamepad2.right_trigger);
+                transfer.setPower(-gamepad2.right_trigger);
+            }
+        } else if (gamepad2.left_trigger>0.1){
+            intake.setPower(gamepad2.left_trigger);
+            transfer.setPower(-gamepad2.left_trigger);
+        } else if (gamepad2.y){
+            intake.setPower(-1);
+            transfer.setPower(-1);
+        } else {
+            intake.setPower(0);
+            transfer.setPower(0);
+        }
+
+
+
+        //use x to switch between the two shooting angles for hood
+        //make it compensate for the angle of the robot so its field centric angle of hood
+        //make velocity of flywheel constant
+
+        //if no hood preset angles, use left joystick x for angle of hood
+
+        //lefthood.setPower(gamepad2.left_stick_x);
+        //righthood.setPower(gamepad2.left_stick_x);
+
+
+
 
         // ------------------DRIVE TRAIN---------------------------------
         //will cause the offset to be set back to 0
@@ -195,8 +257,10 @@ public class coords_auto extends OpMode {
         //if (gamepad1.left_trigger>0.8&&gamepad1.right_trigger>0.8)
         //    imureset = fieldangle();
 
-        dir = Math.atan2(-gamepad1.right_stick_y, gamepad1.right_stick_x) - offset;
-        mag = Math.sqrt(Math.pow(gamepad1.right_stick_x, 2) + Math.pow(gamepad1.right_stick_y, 2));
+        rot = gamepad1.right_stick_x;
+
+        dir = Math.atan2(-gamepad1.left_stick_y, gamepad1.left_stick_x) - offset;
+        mag = Math.sqrt(Math.pow(gamepad1.left_stick_x, 2) + Math.pow(gamepad1.left_stick_y, 2));
         mag *= sqrt2;
         if (mag > sqrt2)
             mag = sqrt2;
@@ -233,11 +297,19 @@ public class coords_auto extends OpMode {
         telemetry.addData("left flywheel spin", leftshooterPID.velocity());
 
 
+        telemetry.addData("intake power", intake.getPower());
+        telemetry.addData("transfer power", transfer.getPower());
+        telemetry.addData("intake velocity", intake.getVelocity());
+        telemetry.addData("transfer velocity", transfer.getVelocity());
 
 
         telemetry.addLine("");
         telemetry.addLine("<------------------->");
         telemetry.addLine("");
+
+        telemetry.addData("encoder", hood_position);
+
+
 
         //telemetry.addData("", );
 
@@ -248,6 +320,8 @@ public class coords_auto extends OpMode {
         //updateLimelight();
         leftshooterPID.update();
         rightshooterPID.update();
+        lefthoodPID.update(hood_position);
+        righthoodPID.update(hood_position);
     }
 
     /** This method is called continuously after Init while waiting for "play". **/
@@ -264,6 +338,24 @@ public class coords_auto extends OpMode {
     /** We do not use this because everything should automatically disable **/
     @Override
     public void stop() {}
+
+    private double hoodangle() {
+        AnalogInput hoodvolt = hardwareMap.get(AnalogInput.class, "encoder");
+        double angles = hoodvolt.getVoltage()/3.3*360;
+
+        double deltaAngle = angles - lastAngles2;
+
+        if (deltaAngle < -180)
+            deltaAngle += 360;
+        else if (deltaAngle > 180)
+            deltaAngle -= 360;
+
+        angle2 += deltaAngle;
+
+        lastAngles2 = angles;
+
+        return angle2;
+    }
 
     /*
     private double getAngle() {

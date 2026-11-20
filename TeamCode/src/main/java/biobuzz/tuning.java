@@ -5,16 +5,19 @@ import com.acmerobotics.dashboard.config.Config;
 
 @Config
 public class tuning {
-    public static double shootkp = 0.1;
+    public static double shootkp = 0.015;
     public static double shootki = 0.0;
     public static double shootkd = 0.0;
-    public static double shootkf = 0.0;
+    public static double shootkf = 0.00005;
     public static double shootmax = 1.0;
     public static double shootmin = 0.0;
+    public static double targetvelo = 700;
+    //values at 10.60volts
 
-
-
+    public static double hoodkp = 0.0; //0.01
+    public static double hoodki = 0.0;
+    public static double hoodkd = 0.0;
     //public double rotkp = 0;
 
-    //   scratch red
+
 }
