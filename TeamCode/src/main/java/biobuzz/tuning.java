@@ -12,7 +12,7 @@ public class tuning {
     public static double shootmax = 1.0;
     public static double shootmin = 0.0;
     public static double targetvelo = 700;
-    //values at 10.60 volts of batt power (during)
+    //values at 10.60 volts of batt power (during transfer too)
 
     public static double hoodkp = 0.0; //0.01
     public static double hoodki = 0.0;
