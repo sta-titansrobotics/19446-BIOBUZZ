@@ -1,6 +1,8 @@
 package biobuzz;
 
 import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.canvas.Canvas;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.limelightvision.LLResult;
@@ -28,7 +30,9 @@ import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import biobuzz.subsystems.CRservoPID;
 import biobuzz.subsystems.MotorPID;
@@ -84,6 +88,18 @@ public class coords_auto extends OpMode {
     private Limelight3A limelight3A;
     private LLResult llResult;
     private double distance;
+    private double avgTx = 0;
+    private double avgTy = 0;
+    private double avgDistance = 0;
+    private int detectedTagCount = 0;
+
+    // Define the specific 4 AprilTag IDs to target
+    int[] targetTagIds = {30, 31, 32, 33};
+    int[] secondtags = {31, 32};
+    int[] thirdtags = {30, 33};
+    int[] fourthtags = {31, 32};
+    int[] fifthtags = {31, 32};
+
     int id;
     double lastTime = 0;
 
@@ -117,6 +133,7 @@ public class coords_auto extends OpMode {
     boolean readyToShoot;
     double shooteravg;
     double hood_position;
+    boolean autohood;
 
     private GoBildaPinpointDriver pinpoint;
 
@@ -143,9 +160,9 @@ public class coords_auto extends OpMode {
         righthood = hardwareMap.get(CRServo.class, "righthood");
         pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
 
-        //limelight3A = hardwareMap.get(Limelight3A.class, "limelight");
-        //limelight3A.pipelineSwitch(0);
-        //limelight3A.start();
+        limelight3A = hardwareMap.get(Limelight3A.class, "limelight");
+        limelight3A.pipelineSwitch(0);
+        limelight3A.start();
 
 
         //---------CHANGE---------------
@@ -178,7 +195,7 @@ public class coords_auto extends OpMode {
 
         intake.setDirection(DcMotorEx.Direction.REVERSE);
 
-        leftExt.setDirection(DcMotorEx.Direction.REVERSE);
+        rightExt.setDirection(DcMotorEx.Direction.REVERSE);
         lefthood.setDirection(DcMotorEx.Direction.REVERSE);
 
         leftshooterPID = new VelocityPID(hardwareMap, "leftshoot", DcMotorEx.Direction.REVERSE, tuning.shootkp, tuning.shootki, tuning.shootkd, tuning.shootkf, tuning.shootmax, tuning.shootmin);
@@ -190,6 +207,7 @@ public class coords_auto extends OpMode {
 
         //initAprilTag();
         dashboard = FtcDashboard.getInstance();
+        FtcDashboard.getInstance().startCameraStream(limelight3A, 0);
     }
 
     @Override
@@ -209,15 +227,10 @@ public class coords_auto extends OpMode {
             leftshooterPID.setTarget(0);
         }
 
-        if (Math.abs(tuning.targetvelo-shooteravg)<150){
+        if (Math.abs(tuning.targetvelo-shooteravg)<50){
             readyToShoot = true;
         } else {
             readyToShoot = false;
-        }
-        
-        if (gamepad1.right_trigger>0.1){
-            rightExt.setPower(gamepad1.right_trigger);
-            leftExt.setPower(gamepad1.right_trigger);
         }
 
 
@@ -240,6 +253,24 @@ public class coords_auto extends OpMode {
             transfer.setPower(0);
         }
 
+        if (gamepad2.x && !but2Xcheck) {
+            button2X += 1;
+            but2Xcheck = true;
+        }
+
+        if (!gamepad2.x) {
+            but2Xcheck = false;
+        }
+
+        if (but2Xcheck) {
+            if (button2X % 2 == 1) {
+                autohood = true;
+            } else {
+                autohood = false;
+            }
+        }
+
+
 
 
         //use x to switch between the two shooting angles for hood
@@ -251,13 +282,56 @@ public class coords_auto extends OpMode {
         //lefthood.setPower(gamepad2.left_stick_x);
         //righthood.setPower(gamepad2.left_stick_x);
 
+        if (gamepad2.right_bumper){
+            leftExt.setPower(0.5);
+            rightExt.setPower(0.5);
+        } else if (gamepad2.left_bumper){
+            leftExt.setPower(-0.5);
+            rightExt.setPower(-0.5);
+        } else {
+            leftExt.setPower(0);
+            rightExt.setPower(0);
+        }
+
+        if (autohood) {
+            if (llResult != null && llResult.isValid()) {
+                if (detectedTagCount > 0) {
+                    telemetry.addLine("~~~~~~~~~~~~~~~~~~detecting (" + detectedTagCount + " tags)~~~~~~~~~~~~~~~~~~~~~");
+                    telemetry.addData("Avg TX", avgTx);
+                    telemetry.addData("power", lefthood.getPower());
+                    lefthoodPID.update(avgTx);
+                    righthoodPID.update(avgTx);
+                } else {
+                    // Button pressed but target NOT found: Force Stop
+                    telemetry.addLine("!!! TARGET LOST - STOPPING !!!");
+                    // Manual Control
+                    lefthoodPID.stop();
+                    righthoodPID.stop();
+                    lefthood.setPower(gamepad2.left_stick_x);
+                    righthood.setPower(gamepad2.left_stick_x);
+                }
+            } else {
+                // Button pressed but target NOT found: Force Stop
+                telemetry.addLine("!!! TARGET LOST - STOPPING !!!");
+                // Manual Control
+                lefthoodPID.stop();
+                righthoodPID.stop();
+                lefthood.setPower(gamepad2.left_stick_x);
+                righthood.setPower(gamepad2.left_stick_x);
+            }
+        } else {
+            lefthoodPID.stop();
+            righthoodPID.stop();
+            lefthood.setPower(gamepad2.left_stick_x);
+            righthood.setPower(gamepad2.left_stick_x);
+        }
 
 
 
         // ------------------DRIVE TRAIN---------------------------------
         //will cause the offset to be set back to 0
 
-        offset = (fieldangle() - imureset);
+        offset = (fieldangle() - imureset)+tuning.startrotoffset;
         //oroffset = (getAngle()%360) - imureset;
 
         //imu increases when turning left and decreases when turning right
@@ -328,24 +402,41 @@ public class coords_auto extends OpMode {
 
         //-----------------apriltagsssssssss------------------------------------
 
-        telemetry.update();
         dashboard.getTelemetry().update();
         //updateLimelight();
         leftshooterPID.update();
         rightshooterPID.update();
-        lefthoodPID.update(hood_position);
-        righthoodPID.update(hood_position);
+        updateLimelight();
+        telemetry.update();
     }
 
     /** This method is called continuously after Init while waiting for "play". **/
     @Override
     public void init_loop() {
+        if (gamepad2.x && !but2Xcheck) {
+            button2X += 1;
+            but2Xcheck = true;
+        }
+
+        if (!gamepad2.x) but2Xcheck = false;
+
+        if (but2Xcheck) {
+            if (button2X % 2 == 1) {
+                telemetry.addLine("1");
+            } else {
+                telemetry.addLine("2");
+            }
+        }
+
+        telemetry.update();
     }
 
     /** This method is called once at the start of the OpMode.
      * It runs all the setup actions, including building paths and starting the path system **/
     @Override
     public void start() {
+        button2X = 0;
+        but2Xcheck = false;
     }
 
     /** We do not use this because everything should automatically disable **/
@@ -370,11 +461,11 @@ public class coords_auto extends OpMode {
         return angle2;
     }
 
-/*
-    private double getAngle() {
-        Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
 
-        double deltaAngle = angles.firstAngle - lastAngles.firstAngle;
+    private double getAngle() {
+        double angles = pinpoint.getHeading(AngleUnit.RADIANS);
+
+        double deltaAngle = angles - lastAngles;
 
         if (deltaAngle < -180)
             deltaAngle += 360;
@@ -389,7 +480,7 @@ public class coords_auto extends OpMode {
         return angle;
     }
 
-*/
+
     private double fieldangle() {
         double angles = pinpoint.getHeading(AngleUnit.RADIANS);
 
@@ -407,31 +498,68 @@ public class coords_auto extends OpMode {
 
 
 
-    /*
-    private void updateLimelight() {
-        limelight3A.updateRobotOrientation(getAngle());
 
+    private void updateLimelight() {
+        if (limelight3A == null) return;
+
+        limelight3A.updateRobotOrientation(getAngle());
         llResult = limelight3A.getLatestResult();
 
         if (llResult != null && llResult.isValid()) {
-            // Iterate through all detected fiducials (AprilTags)
-            for (com.qualcomm.hardware.limelightvision.LLResultTypes.FiducialResult fiducial : llResult.getFiducialResults()) {
-                id = fiducial.getFiducialId();
+            double sumTx = 0;
+            double sumTy = 0;
+            double sumArea = 0;
 
-                // Only update distance if it's Tag 20 or Tag 24
-                if (id == 20 || id == 24) {
-                    // The Limelight SDK gives us target area as a normalized value (0-1),
-                    // but our formula needs it as a percentage (0-100).
-                    distance = getDistanceFromTag(fiducial.getTargetArea() * 100.0);
-                    telemetry.addData("Target Area", fiducial.getTargetArea());
+            Set<Integer> seenTagIds = new HashSet<>();
+            List<com.qualcomm.hardware.limelightvision.LLResultTypes.FiducialResult> fiducials = llResult.getFiducialResults();
 
+            for (com.qualcomm.hardware.limelightvision.LLResultTypes.FiducialResult fiducial : fiducials) {
+                int tagId = fiducial.getFiducialId();
 
-                    return; // Exit once we found our target tag
+                // Ensure each target tag ID is only counted once
+                if (isTargetTag(tagId) && seenTagIds.add(tagId)) {
+                    sumTx += fiducial.getTargetXDegrees(); // X angle offset in degrees
+                    sumTy += fiducial.getTargetYDegrees(); // Y angle offset in degrees
+                    sumArea += fiducial.getTargetArea();   // Target area
                 }
             }
+
+            int count = seenTagIds.size();
+
+            if (count == 4) {
+                detectedTagCount = count;
+                avgTx = sumTx / count;
+                avgTy = sumTy / count;
+                double avgArea = sumArea / count;
+
+                // The Limelight SDK gives us target area as a normalized value (0-1),
+                // but our formula needs it as a percentage (0-100).
+                avgDistance = getDistanceFromTag(avgArea * 100.0);
+                distance = avgDistance;
+
+                telemetry.addData("Unique Tags Detected", count);
+                telemetry.addData("Avg TX", avgTx);
+                telemetry.addData("Avg TY", avgTy);
+                telemetry.addData("Avg Target Area", avgArea);
+                telemetry.addData("Avg Distance", avgDistance);
+                return;
+            }
         }
-        // If no valid tag is found, reset distance to 0 to avoid using stale values.
+
+        // If no valid target tags were detected, reset to 0
+        detectedTagCount = 0;
+        avgTx = 0;
+        avgTy = 0;
+        avgDistance = 0;
         distance = 0;
+    }
+
+    private boolean isTargetTag(int tagId) {
+        for (int id : targetTagIds) {
+            if (id == tagId) return true;
+        }
+
+        return false;
     }
 
     public double getDistanceFromTag(double ta){
@@ -439,16 +567,4 @@ public class coords_auto extends OpMode {
         // from a table of observed values.
         return 157.6 * Math.pow(ta, -0.584);
     }
-    public void lightingloop(){
-        boolean patternlock = false;
-
-        if (Math.abs(roterr) < 1.5) {
-            patternlock = true;
-        }
-
-        if (patternlock)
-            aimassist.setPattern(pattern);
-    }
-
-     */
 }

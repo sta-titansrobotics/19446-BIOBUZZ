@@ -63,7 +63,7 @@ public class CRservoPID {
         this.target = 0;
         this.deriv = 0;
         this.integ = 0;
-        motor.setPower(0);
+        //motor.setPower(0);
         this.timer.reset();
     }
 
@@ -95,6 +95,7 @@ public class CRservoPID {
         dashboard.getTelemetry().addData("error", error);
         dashboard.getTelemetry().addData("integral", integ);
         dashboard.getTelemetry().addData("derivative", deriv);
+
         dashboard.getTelemetry().update();
 
         timer.reset();
