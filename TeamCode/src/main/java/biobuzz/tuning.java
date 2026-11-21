@@ -19,6 +19,4 @@ public class tuning {
     public static double hoodkd = 0;
 
     public static double startrotoffset = 1.57079632679;
-    //public double rotkp = 0;
-
 }
