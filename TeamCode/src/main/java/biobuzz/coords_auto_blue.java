@@ -311,7 +311,6 @@ public class coords_auto_blue extends OpMode {
         }
 
 
-
         // ------------------DRIVE TRAIN---------------------------------
         //will cause the offset to be set back to 0
 
