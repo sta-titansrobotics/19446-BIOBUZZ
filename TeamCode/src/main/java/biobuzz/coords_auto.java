@@ -94,7 +94,7 @@ public class coords_auto extends OpMode {
     private int detectedTagCount = 0;
 
     // Define the specific 4 AprilTag IDs to target
-    int[] targetTagIds = {30, 31, 32, 33};
+    int[] targetTagIds = {30, 31, 32, 33, 34, 35, 36, 37};
     int[] secondtags = {31, 32};
     int[] thirdtags = {30, 33};
     int[] fourthtags = {31, 32};
@@ -264,9 +264,9 @@ public class coords_auto extends OpMode {
 
         if (but2Xcheck) {
             if (button2X % 2 == 1) {
-                autohood = true;
-            } else {
                 autohood = false;
+            } else {
+                autohood = true;
             }
         }
 
@@ -330,6 +330,10 @@ public class coords_auto extends OpMode {
 
         // ------------------DRIVE TRAIN---------------------------------
         //will cause the offset to be set back to 0
+
+        if (gamepad1.right_bumper && gamepad1.left_bumper){
+            offset = fieldangle();
+        }
 
         offset = (fieldangle() - imureset)+tuning.startrotoffset;
         //oroffset = (getAngle()%360) - imureset;
