@@ -480,8 +480,6 @@ public class coords_auto_blue extends OpMode {
     }
 
 
-
-
     private void updateLimelight() {
         if (limelight3A == null) return;
 
