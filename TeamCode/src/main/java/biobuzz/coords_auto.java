@@ -1,30 +1,16 @@
 package biobuzz;
 
 import com.acmerobotics.dashboard.FtcDashboard;
-import com.acmerobotics.dashboard.canvas.Canvas;
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
-import com.qualcomm.hardware.rev.RevBlinkinLedDriver;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
-import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.DistanceSensor;
-import com.qualcomm.robotcore.hardware.LED;
-import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
@@ -35,9 +21,7 @@ import java.util.List;
 import java.util.Set;
 
 import biobuzz.subsystems.CRservoPID;
-import biobuzz.subsystems.MotorPID;
 import biobuzz.subsystems.VelocityPID;
-import biobuzz.tuning;
 
 @TeleOp
 public class coords_auto extends OpMode {
@@ -123,7 +107,7 @@ public class coords_auto extends OpMode {
     private CRServo rightExt;
     private CRServo righthood;
     private CRServo lefthood;
-    
+
 
     VelocityPID leftshooterPID;
     VelocityPID rightshooterPID;
@@ -218,7 +202,7 @@ public class coords_auto extends OpMode {
 
         shooteravg = (leftshooterPID.velocity()+rightshooterPID.velocity())/2;
         hood_position = hoodangle();
-        
+
         if (gamepad2.a){
             rightshooterPID.setTarget(tuning.targetvelo);
             leftshooterPID.setTarget(tuning.targetvelo);
